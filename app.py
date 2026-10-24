@@ -35,7 +35,17 @@ st.markdown("""
 
 # Initialize AI
 def get_ai_response(messages):
-    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
+    # Explicitly get the API key from Streamlit secrets
+    api_key = st.secrets.get("GOOGLE_API_KEY")
+    if not api_key:
+        st.error("GOOGLE_API_KEY not found in Streamlit secrets!")
+        st.stop()
+
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-1.5-flash", 
+        temperature=0, 
+        google_api_key=api_key
+    )
     
     system_prompt = (
         "You are an expert agricultural AI assistant. "
