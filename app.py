@@ -35,7 +35,7 @@ st.markdown("""
 
 # Initialize AI
 def get_ai_response(messages):
-    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
+    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
     
     system_prompt = (
         "You are an expert agricultural AI assistant. "
