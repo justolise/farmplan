@@ -42,7 +42,7 @@ def get_ai_response(messages):
         st.stop()
 
     llm = ChatGoogleGenerativeAI(
-        model="gemini-1.5-flash", 
+        model="gemini-2.5-flash", 
         temperature=0, 
         google_api_key=api_key
     )
