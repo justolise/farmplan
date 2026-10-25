@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
 from langchain_core.output_parsers import JsonOutputParser
-from langchain.agents import create_tool_calling_agent
-from langchain.agents.executor import AgentExecutor
+from langchain.agents import AgentExecutor
+from langchain.agents.agent import create_tool_calling_agent
 from schemas.agri_schema import AgriResponse
 from tools.weather_tool import get_weather_forecast
 from tools.market_tool import get_market_prices
@@ -34,11 +34,22 @@ class FarmPlanAgent:
         self.agent_executor = self._create_executor()
 
     def _create_executor(self):
-        agent = create_tool_calling_agent(
-            self.llm, 
-            self.tools, 
-            self.get_system_prompt()
-        )
+        # Try to use the agent creation function
+        try:
+            agent = create_tool_calling_agent(
+                self.llm, 
+                self.tools, 
+                self.get_system_prompt()
+            )
+        except ImportError:
+            # Fallback for older/different langchain versions
+            from langchain.agents import create_openai_tools_agent
+            agent = create_openai_tools_agent(
+                self.llm, 
+                self.tools, 
+                self.get_system_prompt()
+            )
+            
         return AgentExecutor(agent=agent, tools=self.tools, verbose=False)
 
     def get_system_prompt(self):
