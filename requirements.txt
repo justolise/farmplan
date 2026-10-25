@@ -1,4 +1,4 @@
-langchain
+langchain>=0.2.0
 langchain-google-genai
 python-dotenv
 requests
@@ -6,3 +6,5 @@ streamlit
 pydantic
 langchain-community
 PyPDF2
+faiss-cpu
+sqlalchemy
