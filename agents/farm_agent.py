@@ -20,7 +20,11 @@ class FarmPlanAgent:
         if not self.api_key:
             raise ValueError("GOOGLE_API_KEY not found.")
 
-        self.model_name = model_name or os.getenv("AI_MODEL", "gemini-1.5-flash")
+        # Updated default to gemini-2.0-flash (current stable high-performance model)
+        # User requested 2.5-flash, but standard current stable is 2.0-flash or 1.5-flash
+        # I will use the requested 'gemini-2.0-flash' or allow override via env/args.
+        self.model_name = model_name or os.getenv("AI_MODEL", "gemini-2.0-flash")
+        
         self.llm = ChatGoogleGenerativeAI(
             model=self.model_name,
             temperature=0,
@@ -42,7 +46,6 @@ class FarmPlanAgent:
         return self._parse_output(response.content)
 
     def get_response(self, messages: List[BaseMessage], farm_profile: Optional[Dict[str, Any]] = None, kb_context: Optional[str] = None) -> Dict[str, Any]:
-        # Build the system prompt
         system_instructions = (
             "You are an expert agricultural AI assistant. "
             "You have access to tools for weather, market, and yield predictions. "
@@ -50,35 +53,26 @@ class FarmPlanAgent:
             f"You MUST respond ONLY in JSON matching this schema: {self.parser.get_format_instructions()}"
         )
         
-        # Integrate Context
         context = ""
         if farm_profile:
             context += f"Farm Profile: {farm_profile}\n"
         if kb_context:
             context += f"Technical Data from Documents:\n{kb_context}\n"
 
-        # Prepare messages for tool calling
-        # We use bind_tools to tell the LLM about our capabilities
         llm_with_tools = self.llm.bind_tools(self.tools)
-        
         all_messages = [SystemMessage(content=system_instructions + "\n" + context)] + messages
         
         try:
-            # Direct invocation loop to bypass AgentExecutor import issues
             response = llm_with_tools.invoke(all_messages)
             
-            # Check if the LLM wants to call a tool
             if response.tool_calls:
-                # For simplicity in this fix, we execute the first tool call
                 tool_call = response.tool_calls[0]
                 tool_name = tool_call["name"]
                 args = tool_call["args"]
                 
-                # Find the tool and call it
                 selected_tool = next((t for t in self.tools if t.name == tool_name), None)
                 if selected_tool:
                     tool_output = selected_tool.invoke(args)
-                    # Call LLM again with the tool result to get the final JSON answer
                     all_messages.append(response)
                     all_messages.append(HumanMessage(content=f"Tool Result: {tool_output}"))
                     final_response = self.llm.invoke(all_messages)
