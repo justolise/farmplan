@@ -4,37 +4,19 @@ import os
 import base64
 from datetime import datetime
 from db.database import init_db, SessionLocal
-from db.manager import FarmDataManager
-from agents.farm_agent import FarmPlanAgent
-from utils.helpers import convert_history_to_messages
+from services.farm_service import FarmService
+from services.chat_service import ChatService
 from utils.notifications import notifier
+from config.settings import settings
 
 init_db()
 
-st.set_page_config(page_title="FarmPlan AI Pro", page_icon="🌾", layout="wide")
+st.set_page_config(page_title=settings.APP_NAME, page_icon="🌾", layout="wide")
 
 def apply_styles():
     st.markdown("""
         <style>
-        /* Mobile Optimization */
-        [data-testid="stSidebar"] { background-color: #f0f2f6; }
         .main { background-color: #fdfdfd; padding: 1rem; }
-        
-        /* Voice-like Input Simulation */
-        .voice-btn {
-            background-color: #2e7d32;
-            color: white;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            float: right;
-        }
-        
         .pro-tip-container { background-color: #e8f5e9; border-left: 6px solid #2e7d32; padding: 20px; border-radius: 10px; margin-top: 15px; }
         .requirement-card { background-color: white; border: 1px solid #e0e0e0; padding: 12px; border-radius: 8px; margin-bottom: 10px; }
         .category-label { color: #2e7d32; font-weight: bold; text-transform: uppercase; font-size: 0.85em; margin-right: 10px; }
@@ -44,36 +26,33 @@ def apply_styles():
 
 apply_styles()
 
+# Initialize Services
 db_session = SessionLocal()
-manager = FarmDataManager(db_session)
+farm_service = FarmService(db=db_session)
 
 with st.sidebar:
-    st.title("🌾 FarmPlan Pro")
+    st.title(f"🌾 {settings.APP_NAME}")
     st.subheader("🔑 API Config")
     api_key = st.text_input("Google API Key", type="password", value=st.secrets.get("GOOGLE_API_KEY", ""))
     openweather_key = st.text_input("OpenWeather API Key", type="password", value=st.secrets.get("OPENWEATHER_API_KEY", ""))
-    model_choice = st.selectbox("AI Model", ["gemini-1.5-flash", "gemini-1.5-pro"], index=0)
+    model_choice = st.selectbox("AI Model", ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"], index=2)
     
     st.markdown("---")
     st.subheader("🚜 Farm Profile")
-    profile = manager.get_profile()
-    if not profile: profile = type('obj', (object,), {'location':'', 'soil_type':'', 'main_crops':'', 'size':''})
-    loc = st.text_input("Location", value=getattr(profile, 'location', ''))
-    soil = st.text_input("Soil Type", value=getattr(profile, 'soil_type', ''))
-    crops = st.text_input("Main Crops", value=getattr(profile, 'main_crops', ''))
-    size = st.text_input("Farm Size", value=getattr(profile, 'size', ''))
+    profile = farm_service.get_full_profile()
+    loc = st.text_input("Location", value=profile['location'])
+    soil = st.text_input("Soil Type", value=profile['soil'])
+    crops = st.text_input("Main Crops", value=profile['crops'])
+    size = st.text_input("Farm Size", value=profile['size'])
     if st.button("Save Profile"):
-        manager.update_profile(loc, soil, crops, size)
+        farm_service.update_farm_profile({"location": loc, "soil": soil, "crops": crops, "size": size})
         st.success("Profile Saved!")
 
     st.markdown("---")
-    # Notifications panel in sidebar
     st.subheader("🔔 Notifications")
     alerts = notifier.get_all_notifications()
-    if not alerts:
-        st.write("No new alerts.")
-    for a in alerts:
-        st.markdown(f"**{a['timestamp']}**: {a['message']}")
+    if not alerts: st.write("No new alerts.")
+    for a in alerts: st.markdown(f"**{a['timestamp']}**: {a['message']}")
     if st.button("Clear Alerts"):
         notifier.clear_notifications()
         st.rerun()
@@ -81,26 +60,20 @@ with st.sidebar:
 if openweather_key:
     os.environ["OPENWEATHER_API_KEY"] = openweather_key
 
-@st.cache_resource
-def init_agent(key, model):
-    return FarmPlanAgent(api_key=key, model_name=model)
-
+# Initialize Chat Service
 if not api_key:
     st.warning("Please enter your Google API Key.")
     st.stop()
 
-agent = init_agent(api_key, model_choice)
+chat_service = ChatService(api_key=api_key)
+# Update agent model based on selection
+chat_service.agent.model_name = model_choice
+chat_service.agent.llm = ChatGoogleGenerativeAI(model=model_choice, temperature=settings.TEMPERATURE, google_api_key=api_key)
 
-# --- Navigation ---
 page = st.selectbox("Navigate", ["AI Assistant", "Field Management", "Activity Log", "Knowledge Base", "Diagnosis", "Yield Analytics"])
 
 if page == "AI Assistant":
     st.title("🤖 AI Assistant")
-    
-    # Voice Simulation Button
-    st.markdown('<div class="voice-btn">🎙️</div>', unsafe_allow_html=True)
-    st.caption("Voice input simulation active: Click mic to speak (Demo)")
-    
     if "messages" not in st.session_state: st.session_state.messages = []
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
@@ -122,15 +95,9 @@ if page == "AI Assistant":
         with st.chat_message("user"): st.write(prompt)
         with st.chat_message("assistant"):
             with st.spinner("Analyzing..."):
-                p = manager.get_profile()
-                profile_dict = {"location": getattr(p, 'location', ''), "soil": getattr(p, 'soil_type', ''), "crops": getattr(p, 'main_crops', ''), "size": getattr(p, 'size', '')}
-                kb_context = agent.kb.query(prompt)
-                res = agent.get_response(convert_history_to_messages(st.session_state.messages), farm_profile=profile_dict, kb_context=kb_context)
-                
-                # Trigger Notification if Agent returns alerts
+                res = chat_service.process_message(st.session_state.messages, prompt)
                 if res.get('alerts'):
                     for alert in res['alerts']: notifier.send_alert(alert, "HIGH")
-                
                 if res.get('alerts'):
                     for alert in res['alerts']: st.markdown(f'<div class="alert-banner">⚠️ {alert}</div>', unsafe_allow_html=True)
                 st.write(res.get('summary', ''))
@@ -150,23 +117,23 @@ elif page == "Field Management":
             f_area = st.number_input("Area (Acres)", min_value=0.1)
             f_notes = st.text_area("Notes")
             if st.form_submit_button("Create Field"):
-                manager.add_field(f_name, f_crop, datetime.combine(f_date, datetime.min.time()), f_area, f_notes)
+                farm_service.manage_fields("add", {"name": f_name, "crop": f_crop, "date": datetime.combine(f_date, datetime.min.time()), "area": f_area, "notes": f_notes})
                 st.success(f"Field {f_name} created!")
                 st.rerun()
     st.markdown("---")
-    fields = manager.get_all_fields()
+    fields = farm_service.manage_fields("list")
     for f in fields:
         with st.container():
             col1, col2 = st.columns([3, 1])
             col1.markdown(f"### {f.name} ({f.crop})")
             col1.write(f"📅 Planted: {f.planted_date.strftime('%Y-%m-%d') if f.planted_date else 'N/A'} | 📏 Area: {f.area} acres")
             if col2.button("🗑️ Delete", key=f"del_{f.id}"):
-                manager.delete_field(f.id)
+                farm_service.manage_fields("delete", field_id=f.id)
                 st.rerun()
 
 elif page == "Activity Log":
     st.title("📝 Activity Log")
-    fields = manager.get_all_fields()
+    fields = farm_service.manage_fields("list")
     if not fields: st.warning("Please create a field first.")
     else:
         selected_field = st.selectbox("Select Field", fields, format_func=lambda f: f.name)
@@ -176,11 +143,11 @@ elif page == "Activity Log":
                 a_desc = st.text_area("Description")
                 a_amount = st.text_input("Amount")
                 if st.form_submit_button("Add Log"):
-                    manager.add_log(selected_field.id, a_type, a_desc, a_amount)
+                    farm_service.log_activity(selected_field.id, {"type": a_type, "description": a_desc, "amount": a_amount})
                     st.success("Activity logged!")
                     st.rerun()
         st.markdown("---")
-        logs = manager.get_logs_for_field(selected_field.id)
+        logs = farm_service.get_field_logs(selected_field.id)
         for l in logs: st.markdown(f'<div class="requirement-card"><b>{l.date.strftime("%Y-%m-%d")}</b> | <span class="category-label">{l.activity_type}</span><br>{l.description} <br><small>Amount: {l.amount}</small></div>', unsafe_allow_html=True)
 
 elif page == "Knowledge Base":
@@ -189,10 +156,14 @@ elif page == "Knowledge Base":
     if uploaded_file:
         with open("temp.pdf", "wb") as f: f.write(uploaded_file.getvalue())
         with st.spinner("Indexing document..."):
-            agent.kb.add_document("temp.pdf")
+            # We use the agent's KB since it's shared
+            # Need a temporary agent to access KB
+            tmp_agent = FarmPlanAgent(api_key=api_key)
+            tmp_agent.kb.add_document("temp.pdf")
         st.success("Document indexed successfully!")
     if st.button("Clear Knowledge Base"):
-        agent.kb.clear()
+        tmp_agent = FarmPlanAgent(api_key=api_key)
+        tmp_agent.kb.clear()
         st.success("Knowledge base cleared!")
 
 elif page == "Diagnosis":
@@ -205,7 +176,7 @@ elif page == "Diagnosis":
             with st.spinner("Analyzing..."):
                 bytes_data = img_file.getvalue()
                 b64_img = base64.b64encode(bytes_data).decode('utf-8')
-                res = agent.analyze_image(b64_img, prompt)
+                res = chat_service.diagnose_image(b64_img, prompt)
                 if res.get('alerts'):
                     for alert in res['alerts']: notifier.send_alert(alert, "HIGH")
                 if res.get('alerts'):
@@ -218,15 +189,16 @@ elif page == "Diagnosis":
 
 elif page == "Yield Analytics":
     st.title("📈 Yield Analytics")
-    fields = manager.get_all_fields()
+    fields = farm_service.manage_fields("list")
     if not fields:
         st.warning("Create fields to see yield analytics.")
     else:
         selected_field = st.selectbox("Select Field", fields, format_func=lambda f: f.name)
         if st.button("Calculate Predicted Yield"):
-            with st.spinner("Computing based on field history..."):
-                # Calculate a mock health score based on logs
-                logs = manager.get_logs_for_field(selected_field.id)
+            with st.spinner("Computing..."):
+                logs = farm_service.get_field_logs(selected_field.id)
                 health_score = 1.0 if len(logs) > 2 else 0.7
-                prediction = agent.agent_executor.invoke({"input": f"Predict yield for {selected_field.crop} on {selected_field.area} acres with health score {health_score}"})
-                st.success(prediction["output"])
+                # Need to query the agent to get the prediction
+                res = chat_service.process_message([], f"Predict yield for {selected_field.crop} on {selected_field.area} acres with health score {health_score}")
+                st.write(res.get('summary', ''))
+                if 'pro_tip' in res: st.markdown(f'<div class="pro-tip-container"><b>💡 Pro Tip:</b> {res["pro_tip"]}</div>', unsafe_allow_html=True)
