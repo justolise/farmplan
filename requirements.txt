@@ -3,3 +3,6 @@ langchain-google-genai
 python-dotenv
 requests
 streamlit
+pydantic
+langchain-community
+PyPDF2
