@@ -11,6 +11,7 @@ from tools.weather_tool import get_weather_forecast
 from tools.market_tool import get_market_prices
 from tools.yield_tool import predict_crop_yield
 from agents.knowledge_base import FarmKnowledgeBase
+from langchain_core.tools import tool
 
 load_dotenv()
 
@@ -28,7 +29,6 @@ class FarmPlanAgent:
         )
         self.parser = JsonOutputParser(pydantic_object=AgriResponse)
         self.kb = FarmKnowledgeBase(api_key=self.api_key)
-        # Added yield tool here
         self.tools = [get_weather_forecast, get_market_prices, predict_crop_yield]
         self.agent_executor = self._create_executor()
 
