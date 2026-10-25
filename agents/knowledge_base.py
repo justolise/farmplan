@@ -2,7 +2,7 @@ import os
 from langchain_community.vectorstores import FAISS
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from utils.pdf_processor import extract_text_from_pdf
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 class FarmKnowledgeBase:
     def __init__(self, api_key: str):
@@ -26,7 +26,6 @@ class FarmKnowledgeBase:
 
     def query(self, question: str, k: int = 3):
         if self.vector_db is None:
-            # Try loading existing store
             try:
                 self.vector_db = FAISS.load_local(self.db_path, self.embeddings, allow_dangerous_deserialization=True)
             except:
