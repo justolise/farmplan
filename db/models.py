@@ -21,7 +21,7 @@ class Field(Base):
     planted_date = Column(DateTime)
     area = Column(Float)
     notes = Column(Text)
-    logs = relationship("ActivityLog", order_by=ActivityLog.date.desc(), back_populates="field")
+    logs = relationship("ActivityLog", back_populates="field")
 
 class ActivityLog(Base):
     __tablename__ = 'activity_logs'
