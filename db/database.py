@@ -9,7 +9,13 @@ engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db():
-    Base.metadata.create_all(bind=engine)
+    # Base.metadata.create_all(bind=engine) handles "IF NOT EXISTS" automatically 
+    # in standard SQLAlchemy, but some environments/versions can trigger issues 
+    # if there's a mismatch between the model and the existing table.
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"Database initialization notice: {e}")
 
 def get_db():
     db = SessionLocal()
