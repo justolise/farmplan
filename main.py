@@ -1,6 +1,8 @@
 import sys
-from core import FarmPlanAgent, convert_history_to_messages
-from langchain_core.messages import HumanMessage, AIMessage
+from code import FarmPlanAgent
+
+from langchain_core.messages import AIMessage, HumanMessage
+
 
 def render_ui_response(data):
     print("\n" + "="*50)
@@ -39,7 +41,7 @@ def main():
             render_ui_response(response_data)
             # Store the response as a string for the LLM context
             messages.append(AIMessage(content=str(response_data)))
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             print(f"\nError: {e}")
 
 if __name__ == "__main__":

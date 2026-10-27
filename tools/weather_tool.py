@@ -1,6 +1,8 @@
 import os
+
 import requests
 from langchain_core.tools import tool
+
 
 @tool
 def get_weather_forecast(location: str):

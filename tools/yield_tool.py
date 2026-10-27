@@ -1,5 +1,7 @@
-from langchain_core.tools import tool
 import random
+
+from langchain_core.tools import tool
+
 
 @tool
 def predict_crop_yield(crop: str, area: float, health_score: float = 1.0):

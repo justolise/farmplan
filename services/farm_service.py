@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
-from db.manager import FarmDataManager
+
 from db.database import SessionLocal
+from db.manager import FarmDataManager
+
 
 class FarmService:
     def __init__(self, db: Session = None):

@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text
-from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
+
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
 
@@ -32,3 +33,13 @@ class ActivityLog(Base):
     description = Column(Text)
     amount = Column(String)
     field = relationship("Field", back_populates="logs")
+
+class MarketReport(Base):
+    __tablename__ = 'market_reports'
+    id = Column(Integer, primary_key=True)
+    crop = Column(String, nullable=False)
+    price = Column(Float, nullable=False)
+    unit = Column(String, default="kg")  # e.g., kg, bag, tonne
+    location_county = Column(String, nullable=False) # e.g., 'Uasin Gishu', 'Nakuru'
+    date = Column(DateTime, default=datetime.utcnow)
+    reported_by = Column(String, nullable=True) # Farmer ID or 'system'

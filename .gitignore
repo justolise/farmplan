@@ -1,4 +1,18 @@
+# Python
 __pycache__/
-.env
-.venv/
 *.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+.env
+.pytest_cache/
+
+# Database
+*.db
+db/vector_store/
+
+# IDEs
+.vscode/
+.idea/

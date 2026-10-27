@@ -1,5 +1,7 @@
-from typing import List, Dict
-from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
+from typing import Dict, List  # noqa: UP035
+
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+
 
 def convert_history_to_messages(history: List[Dict[str, str]]) -> List[BaseMessage]:
     lc_messages = []

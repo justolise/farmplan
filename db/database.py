@@ -1,5 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
 from db.models import Base
 
 # Using SQLite for portability and ease of setup
@@ -14,7 +15,7 @@ def init_db():
     # if there's a mismatch between the model and the existing table.
     try:
         Base.metadata.create_all(bind=engine)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"Database initialization notice: {e}")
 
 def get_db():
