@@ -13,7 +13,13 @@ from schemas.agri_schema import AgriResponse
 from tools.market_tool import get_market_prices
 from tools.weather_tool import get_weather_forecast
 from tools.yield_tool import predict_crop_yield
-from tools.farm_data_tool import get_farm_profile, list_farm_fields, get_field_activity_logs, search_activity_logs
+from tools.farm_data_tool import (
+    get_farm_profile,
+    list_farm_fields,
+    get_field_activity_logs,
+    search_activity_logs,
+    get_field_trend_analysis
+)
 from utils.guardrails import SafetyChecker
 
 load_dotenv()

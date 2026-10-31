@@ -9,3 +9,4 @@ PyPDF2
 faiss-cpu
 sqlalchemy
 langchain-text-splitters
+pymongo

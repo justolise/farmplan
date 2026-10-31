@@ -1,5 +1,5 @@
 import sys
-from code import FarmPlanAgent
+from agents.farm_agent import FarmPlanAgent
 
 from langchain_core.messages import AIMessage, HumanMessage
 

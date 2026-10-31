@@ -49,3 +49,25 @@ class MemoryManager:
     def clear_session(self, session_id: str):
         if session_id in self.snapshots:
             del self.snapshots[session_id]
+
+    def trim_history(self, history: List[Dict[str, Any]], max_messages: int = 10) -> List[Dict[str, Any]]:
+        """Keep only the most recent N messages to prevent context overflow."""
+        if not history or len(history) <= max_messages:
+            return history
+        return history[-max_messages:]
+
+    def summarize_history(self, history: List[Dict[str, Any]], max_messages: int = 10) -> str:
+        """Summarize conversation history prior to the active sliding window."""
+        if not history or len(history) <= max_messages:
+            return ""
+
+        older_messages = history[:-max_messages]
+        summary_points = []
+        for msg in older_messages:
+            role = msg.get("role", "unknown")
+            content = str(msg.get("content", "")).strip()
+            if len(content) > 120:
+                content = content[:117] + "..."
+            summary_points.append(f"{role.capitalize()}: {content}")
+
+        return "Earlier context:\n" + "\n".join(summary_points)

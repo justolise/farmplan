@@ -23,9 +23,18 @@ def apply_styles():
         <style>
         .main { background-color: #fdfdfd; padding: 1rem; }
         .pro-tip-container { background-color: #e8f5e9; border-left: 6px solid #2e7d32; padding: 20px; border-radius: 10px; margin-top: 15px; }
-        .requirement-card { background-color: white; border: 1px solid #e0e0e0; padding: 12px; border-radius: 8px; margin-bottom: 10px; }
+        .requirement-card { background-color: white; border: 1px solid #e0e0e0; padding: 12px; border-radius: 8px; margin-bottom: 10px; width: 100%; }
         .category-label { color: #2e7d32; font-weight: bold; text-transform: uppercase; font-size: 0.85em; margin-right: 10px; }
         .alert-banner { background-color: #ffebee; border: 1px solid #ef9a9a; color: #c62828; padding: 15px; border-radius: 10px; margin-bottom: 20px; font-weight: bold; text-align: center; }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .main { padding: 0.5rem; }
+            .requirement-card { padding: 10px; font-size: 0.9em; }
+            .pro-tip-container { padding: 15px; }
+            .stButton button { width: 100% !important; }
+            .stTextInput input { font-size: 16px !important; } /* Prevents iOS zoom on focus */
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -41,13 +50,27 @@ farm_service = FarmService(db=db_session)
 with st.sidebar:
     st.title(f"🌾 {settings.APP_NAME}")
     st.subheader("🔑 API Config")
+    default_google_key = settings.GOOGLE_API_KEY or os.getenv("GOOGLE_API_KEY", "")
+    try:
+        if not default_google_key and hasattr(st, "secrets"):
+            default_google_key = st.secrets.get("GOOGLE_API_KEY", "")
+    except Exception:
+        pass
+
+    default_weather_key = settings.OPENWEATHER_API_KEY or os.getenv("OPENWEATHER_API_KEY", "")
+    try:
+        if not default_weather_key and hasattr(st, "secrets"):
+            default_weather_key = st.secrets.get("OPENWEATHER_API_KEY", "")
+    except Exception:
+        pass
+
     api_key = st.text_input(
-        "Google API Key", type="password", value=st.secrets.get("GOOGLE_API_KEY", "")
+        "Google API Key", type="password", value=default_google_key
     )
     openweather_key = st.text_input(
         "OpenWeather API Key",
         type="password",
-        value=st.secrets.get("OPENWEATHER_API_KEY", ""),
+        value=default_weather_key,
     )
     model_choice = st.selectbox(
         "AI Model", ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"], index=2
@@ -134,13 +157,11 @@ if page == "AI Assistant":
                                 unsafe_allow_html=True,
                             )
                     st.write(data.get("summary", ""))
-                    cols = st.columns(2)
-                    for idx, item in enumerate(data.get("requirements", [])):
-                        with cols[idx % 2]:
-                            st.markdown(
-                                f'<div class="requirement-card"><span class="category-label">{item.get("category")}</span>{item.get("detail")}</div>',
-                                unsafe_allow_html=True,
-                            )
+                    for item in data.get("requirements", []):
+                        st.markdown(
+                            f'<div class="requirement-card"><span class="category-label">{item.get("category")}</span>{item.get("detail")}</div>',
+                            unsafe_allow_html=True,
+                        )
                     if "pro_tip" in data:
                         st.markdown(
                             f'<div class="pro-tip-container"><b>💡 Pro Tip:</b> {data["pro_tip"]}</div>',
@@ -167,13 +188,11 @@ if page == "AI Assistant":
                             unsafe_allow_html=True,
                         )
                 st.write(res.get("summary", ""))
-                cols = st.columns(2)
-                for idx, item in enumerate(res.get("requirements", [])):
-                    with cols[idx % 2]:
-                        st.markdown(
-                            f'<div class="requirement-card"><span class="category-label">{item.get("category")}</span>{item.get("detail")}</div>',
-                            unsafe_allow_html=True,
-                        )
+                for item in res.get("requirements", []):
+                    st.markdown(
+                        f'<div class="requirement-card"><span class="category-label">{item.get("category")}</span>{item.get("detail")}</div>',
+                        unsafe_allow_html=True,
+                    )
                 if "pro_tip" in res:
                     st.markdown(
                         f'<div class="pro-tip-container"><b>💡 Pro Tip:</b> {res["pro_tip"]}</div>',
@@ -283,13 +302,11 @@ elif page == "Diagnosis":
                             unsafe_allow_html=True,
                         )
                 st.write(res.get("summary", ""))
-                cols = st.columns(2)
-                for idx, item in enumerate(res.get("requirements", [])):
-                    with cols[idx % 2]:
-                        st.markdown(
-                            f'<div class="requirement-card"><span class="category-label">{item.get("category")}</span>{item.get("detail")}</div>',
-                            unsafe_allow_html=True,
-                        )
+                for item in res.get("requirements", []):
+                    st.markdown(
+                        f'<div class="requirement-card"><span class="category-label">{item.get("category")}</span>{item.get("detail")}</div>',
+                        unsafe_allow_html=True,
+                    )
                 if "pro_tip" in res:
                     st.markdown(
                         f'<div class="pro-tip-container"><b>💡 Pro Tip:</b> {res["pro_tip"]}</div>',

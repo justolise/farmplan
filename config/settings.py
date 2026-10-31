@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     
     # App Config
     APP_NAME: str = "FarmPlan AI Pro"
-    DATABASE_URL: str = "sqlite:///./farmplan.db"
+    MONGODB_URI: str = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 
     class Config:
         env_file = ".env"

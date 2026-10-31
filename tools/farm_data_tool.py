@@ -44,7 +44,7 @@ def list_farm_fields() -> str:
         return "Could not retrieve fields."
 
 @tool
-def get_field_activity_logs(field_id: int) -> str:
+def get_field_activity_logs(field_id: str) -> str:
     """
     Retrieves the complete activity history for a specific field.
     Use the field_id obtained from list_farm_fields.
@@ -88,7 +88,7 @@ def search_activity_logs(query: str) -> str:
         return "Could not search activity logs."
 
 @tool
-def get_field_trend_analysis(field_id: int, activity_type: str) -> str:
+def get_field_trend_analysis(field_id: str, activity_type: str) -> str:
     """
     Analyzes trends for a specific activity (e.g., 'irrigation', 'yield', 'fertilization')
     over the last 5 entries. Detects if values are increasing, decreasing, or stable.
